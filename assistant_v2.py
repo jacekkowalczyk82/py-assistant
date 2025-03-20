@@ -3,7 +3,7 @@ import wave
 import speech_recognition as sr
 import time
 
-
+import subprocess
 
 
 # Record audio
@@ -20,6 +20,7 @@ SUPPORTED_COMMANDS = ["play radio RMF", "stop radio", "volume up", "volume down"
 
 def assist_print(text):
     print("\n    " + text)
+
 def show_assistent_help():
     assist_print("Supported commands are: " + str(SUPPORTED_COMMANDS))
 
@@ -60,12 +61,40 @@ def listen_speech():
         print(f"Error with request: {e}")
         return None
 
+def get_command(lower_command):
+
+    for command in SUPPORTED_COMMANDS:
+        full_command = ASSISTANT_COMMANDS_PREFIX + command
+        if full_command.lower() in lower_command:
+            return command
+    return None
+
+
 def command_handler_stop(active_command):
     assist_print("Stopping active_command: " + str(active_command))
 
 
-def command_handler(lower_command):
-    assist_print("Running command: " + lower_command)
+def command_handler(command):
+    if command is None:
+        assist_print("command is None")
+        return 
+    else:    
+        assist_print("Running command: " + command)
+
+        if "play radio RMF" in command:
+            play_radio_rmf()
+
+
+    # if radio -> rmf-ubuntu.sh 
+
+def play_radio_rmf():
+    print("RMF FM ")
+    with open("/tmp/py-assistant.log", "a") as assistant_log:
+        with open("/tmp/py-assistant.err.log", "a") as assistant_err:
+            process3 = subprocess.Popen(["/home/jacek/bin/rmf-ubuntu.sh"],
+            stdout=assistant_log, 
+            stderr=assistant_err)
+            stdout3, stderr3 = process3.communicate()
 
 def is_supported (command_text):
     if ASSISTANT_OFF  in command_text:
@@ -91,11 +120,11 @@ def handle_supported_command(command_text, active_command):
             assist_print("Stopping last active command: " + active_command)
             command_handler_stop(active_command)
 
-        lower_command = command_text.lower()
+        command = get_command(command_text.lower())
 
-        command_handler(lower_command)
+        command_handler(command)
 
-        return lower_command
+        return command
     else:
         return None
 
@@ -112,7 +141,9 @@ if __name__ == "__main__":
             assist_print ("text: None: no speach ") 
         else: 
             
-            active_command = handle_supported_command (text, active_command)
+            command_started_possible = handle_supported_command (text, active_command)
+            if (command_started_possible is not None):
+                active_command = command_started_possible
 
             if ASSISTANT_OFF  in text:
                 keep_listening_assitant = False
