@@ -60,6 +60,12 @@ def listen_speech():
         print(f"Error with request: {e}")
         return None
 
+def command_handler_stop(active_command):
+    assist_print("Stopping active_command: " + str(active_command))
+
+
+def command_handler(lower_command):
+    assist_print("Running command: " + lower_command)
 
 def is_supported (command_text):
     if ASSISTANT_OFF  in command_text:
@@ -75,24 +81,38 @@ def is_supported (command_text):
     show_assistent_help();
     return False; 
 
-def handle_supported_command(command_text):
+def handle_supported_command(command_text, active_command):
+    assist_print("Last active command is: " + str(active_command))
+
     if is_supported(command_text):
         assist_print("Received command: " + command_text.lower())
 
+        if active_command is not None:
+            assist_print("Stopping last active command: " + active_command)
+            command_handler_stop(active_command)
+
         lower_command = command_text.lower()
-        assist_print("Running command: " + lower_command)
+
+        command_handler(lower_command)
+
+        return lower_command
+    else:
+        return None
 
 
 if __name__ == "__main__":
     # execute only if run as a script
     # main(sys.argv)
     keep_listening_assitant = True
+    active_command = None
+
     while keep_listening_assitant :
         text = listen_speech() ;
         if text is None:
             assist_print ("text: None: no speach ") 
         else: 
-            handle_supported_command (text)
+            
+            active_command = handle_supported_command (text, active_command)
 
             if ASSISTANT_OFF  in text:
                 keep_listening_assitant = False
