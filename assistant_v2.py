@@ -2,9 +2,68 @@ import pyaudio
 import wave
 import speech_recognition as sr
 import time
+import logging
 
 import subprocess
+import threading
+import os
+import sys
 
+import pyttsx3
+
+
+# sudo apt-get install espeak
+# pip3 install pyttsx3
+# pip3 install SpeechRecognition
+# pip3 install pyaudio
+
+# engine = pyttsx3.init('espeak') # Linux
+# engine.setProperty('volume', 1.0)  # Max volume
+# engine.setProperty('rate', 150)    # Default rate 200
+# engine.say("Hello I am listening")
+# engine.runAndWait()
+# engine.stop()  # Explicitly stop the engine after speaking
+
+# # Initialize the text-to-speech engine
+# # engine = pyttsx3.init('espeak') # Linux
+# engine = pyttsx3.init() # Linux
+# engine.setProperty('volume', 1.0)  # Max volume
+# engine.setProperty('rate', 200)    # Default rate
+
+# # Set speech rate (default is 200)
+# # engine.setProperty('rate', 150)  # Slower speech
+
+# # Set volume (0.0 to 1.0)
+# # engine.setProperty('volume', 1.0)  # Max volume
+
+# engine.say("Can you hear me now?")
+# engine.runAndWait()
+
+
+## logging 
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
+
+stdout_handler = logging.StreamHandler(sys.stdout)
+stdout_handler.setLevel(logging.DEBUG)
+stdout_handler.setFormatter(formatter)
+
+file_handler = logging.FileHandler('py-assistant.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+
+logger.addHandler(file_handler)
+logger.addHandler(stdout_handler)
+
+## commands subprocesses
+
+BASH_COMMAND_SWITCH = "-c"
+BASH_EXE = "bash"
+
+##
 
 # Record audio
 CHUNK = 1024
@@ -14,9 +73,32 @@ RATE = 44100
 RECORD_SECONDS = 5
 OUTPUT_FILE = "output.wav"
 
+HELLO_ASSISTANT = "hello assistant"
 ASSISTANT_OFF = "assistant turn off"
 ASSISTANT_COMMANDS_PREFIX = "assistant "
 SUPPORTED_COMMANDS = ["play radio RMF", "stop radio", "volume up", "volume down", "play youtube favorites", "stop youtube", "help me"]
+ 
+
+def speak(text):
+    """Convert text to speech and play it through speakers"""
+    # Set speech rate (default is 200)
+    # engine.setProperty('rate', 150)  # Slower speech
+
+    # Set volume (0.0 to 1.0)
+    # engine.setProperty('volume', 1.0)  # Max volume
+    # engine.setProperty('volume', 1.0)  # Max volume
+    # engine.setProperty('rate', 200)    # Default rate
+
+    # Ensure PyAudio resources are not conflicting
+    # engine = pyttsx3.init()
+    engine = pyttsx3.init('espeak') # Linux
+    engine.setProperty('volume', 1.0)  # Max volume
+    engine.setProperty('rate', 150)    # Default rate 200
+    engine.say(text)
+    engine.runAndWait()
+    engine.stop()  # Explicitly stop the engine after speaking
+    print("speak exit")
+
 
 def assist_print(text):
     print("\n    " + text)
@@ -70,31 +152,46 @@ def get_command(lower_command):
     return None
 
 
-def command_handler_stop(active_command):
+def command_handler_stop(active_command, sub_commands_pids):
     assist_print("Stopping active_command: " + str(active_command))
 
 
-def command_handler(command):
+def command_handler(command, sub_commands_pids):
     if command is None:
         assist_print("command is None")
         return 
     else:    
-        assist_print("Running command: " + command)
+        message = "Running command: " + command
+        assist_print(message)
+        speak(message)
 
         if "play radio RMF" in command:
-            play_radio_rmf()
-
+            thread_play_radio_rmf(command, sub_commands_pids)
+        elif "stop radio" in command:
+            thread_stop_radio(command, sub_commands_pids)
+ 
 
     # if radio -> rmf-ubuntu.sh 
 
-def play_radio_rmf():
+def thread_play_radio_rmf(command, sub_commands_pids):
     print("RMF FM ")
-    with open("/tmp/py-assistant.log", "a") as assistant_log:
-        with open("/tmp/py-assistant.err.log", "a") as assistant_err:
-            process3 = subprocess.Popen(["/home/jacek/bin/rmf-ubuntu.sh"],
-            stdout=assistant_log, 
-            stderr=assistant_err)
-            stdout3, stderr3 = process3.communicate()
+
+    command_thread = threading.Thread(target=thread_command_function, args=(command, sub_commands_pids, "/home/jacek/bin/rmf-ubuntu.sh","dummy")) # extra comma , must be added
+    command_thread.daemon = True  # Thread will terminate when main program exits
+    command_thread.start()
+
+    logger.debug("thread_play_radio_rmf: " + str(sub_commands_pids))
+
+def thread_stop_radio(command, sub_commands_pids):
+    print("Stop Radio")
+
+    radio_pid = sub_commands_pids["play radio RMF"]
+    kill_command = "kill -9 -" + str(radio_pid)
+    command_thread = threading.Thread(target=thread_command_function, args=(command, sub_commands_pids, kill_command,"dummy")) # extra comma , must be added
+    command_thread.daemon = True  # Thread will terminate when main program exits
+    command_thread.start()
+
+    logger.debug("thread_play_radio_rmf: " + str(sub_commands_pids))
 
 def is_supported (command_text):
     if ASSISTANT_OFF  in command_text:
@@ -110,7 +207,7 @@ def is_supported (command_text):
     show_assistent_help();
     return False; 
 
-def handle_supported_command(command_text, active_command):
+def handle_supported_command(command_text, active_command, sub_commands_pids):
     assist_print("Last active command is: " + str(active_command))
 
     if is_supported(command_text):
@@ -118,40 +215,97 @@ def handle_supported_command(command_text, active_command):
 
         if active_command is not None:
             assist_print("Stopping last active command: " + active_command)
-            command_handler_stop(active_command)
+            command_handler_stop(active_command, sub_commands_pids)
 
         command = get_command(command_text.lower())
 
-        command_handler(command)
+        command_handler(command, sub_commands_pids)
 
         return command
     else:
         return None
 
 
+def thread_command_function(assistant_command, sub_commands_pids, tuple_os_command_to_run, sec_unused_param):
+    thread_id = threading.get_ident()
+    print("Started thread_command_function thread " + str(thread_id) + " with command: " +  str(tuple_os_command_to_run))
+    logger.debug(str(sub_commands_pids))
+
+    with open("/tmp/py-assistant.log", "a") as assistant_log:
+        with open("/tmp/py-assistant.err.log", "a") as assistant_err:
+            logger.debug("Before starting subprocess : "+ str(tuple_os_command_to_run))
+            process3 = subprocess.Popen(
+            [BASH_EXE, BASH_COMMAND_SWITCH, tuple_os_command_to_run],
+            stdout=assistant_log, 
+            stderr=assistant_err,
+            preexec_fn=os.setsid  # Creates a new process group
+            )
+
+            sub_commands_pids[assistant_command] = process3.pid
+            logger.debug("After starting subprocess : "+ str(tuple_os_command_to_run))
+            logger.debug("sub_commands_pids: " + str(sub_commands_pids))
+
+            pgid = os.getpgid(process3.pid)
+            logger.debug("sub_commands_pids process group PGID: " + str(pgid))
+
+
+            stdout3, stderr3 = process3.communicate()
+
+            if stdout3 is not None:
+                stdout_decoded = stdout3.decode("UTF-8")
+                logger.debug("stdout", stdout_decoded)
+            if stderr3 is not None:
+                stderr_decoded = stderr3.decode("UTF-8")
+                logger.debug("stdout", stderr_decoded)
+            
+            pass
+
+
+
 if __name__ == "__main__":
+    
+
+    # speak("I am listening")
+
+    # exit(0)
+
+
+
+
     # execute only if run as a script
     # main(sys.argv)
     keep_listening_assitant = True
     active_command = None
+    sub_commands_pids = dict()
 
     while keep_listening_assitant :
+
+        print(str(sub_commands_pids))
+
         text = listen_speech() ;
         if text is None:
             assist_print ("text: None: no speach ") 
         else: 
-            
-            command_started_possible = handle_supported_command (text, active_command)
-            if (command_started_possible is not None):
-                active_command = command_started_possible
+            if HELLO_ASSISTANT in text:
+                assist_print("I am listening")
+                speak("I am listening")
 
-            if ASSISTANT_OFF  in text:
-                keep_listening_assitant = False
+                text = listen_speech() ;
+                if text is None:
+                    assist_print ("text: None: no speach ") 
+                else: 
+                    command_started_possible = handle_supported_command (text, active_command, sub_commands_pids)
+                    if (command_started_possible is not None):
+                        active_command = command_started_possible
+                        
+
+                    if ASSISTANT_OFF  in text:
+                        keep_listening_assitant = False
         
         
-
+        print(str(sub_commands_pids))
         # waiting for next 
-        time.sleep(5) #  seconds 
+        time.sleep(2) #  seconds 
 
         
     
