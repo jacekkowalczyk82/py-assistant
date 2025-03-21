@@ -76,8 +76,22 @@ OUTPUT_FILE = "output.wav"
 HELLO_ASSISTANT = "hello assistant"
 ASSISTANT_OFF = "assistant turn off"
 ASSISTANT_COMMANDS_PREFIX = "assistant "
-SUPPORTED_COMMANDS = ["play radio RMF", "stop radio", "volume up", "volume down", "play youtube favorites", "stop youtube", "help me"]
+SUPPORTED_COMMANDS = ["play radio RMF", "play radio", "stop radio", "volume up", "volume down", "play youtube favorites", "stop youtube", "help me"]
  
+def speak_Polish(text):
+    """Convert text to speech and play it through speakers"""
+    # engine = pyttsx3.init()
+    engine = pyttsx3.init('espeak') # Linux
+
+    engine.setProperty('voice', "Polish")  # Index depends on your system
+    engine.setProperty('volume', 5.0)  # Max volume
+    
+    engine.setProperty('rate', 140)    # Default rate 200
+    engine.say(text)
+    engine.runAndWait()
+    engine.stop()  # Explicitly stop the engine after speaking
+    print("speak exit")
+
 
 def speak(text):
     """Convert text to speech and play it through speakers"""
@@ -92,8 +106,16 @@ def speak(text):
     # Ensure PyAudio resources are not conflicting
     # engine = pyttsx3.init()
     engine = pyttsx3.init('espeak') # Linux
-    engine.setProperty('volume', 1.0)  # Max volume
-    engine.setProperty('rate', 150)    # Default rate 200
+
+    voices = engine.getProperty('voices')
+    for voice in voices:
+        print(f"Voice: {voice.name}, ID: {voice.id}")
+
+    # Voice: English (America), ID: English (America)
+    engine.setProperty('voice', "English (Great Britain)")  # Index depends on your system
+    engine.setProperty('volume', 5.0)  # Max volume
+    
+    engine.setProperty('rate', 140)    # Default rate 200
     engine.say(text)
     engine.runAndWait()
     engine.stop()  # Explicitly stop the engine after speaking
@@ -166,6 +188,8 @@ def command_handler(command, sub_commands_pids):
         speak(message)
 
         if "play radio RMF" in command:
+            thread_play_radio_rmf(command, sub_commands_pids)
+        elif "play radio" in command:
             thread_play_radio_rmf(command, sub_commands_pids)
         elif "stop radio" in command:
             thread_stop_radio(command, sub_commands_pids)
@@ -265,8 +289,9 @@ def thread_command_function(assistant_command, sub_commands_pids, tuple_os_comma
 if __name__ == "__main__":
     
 
-    # speak("I am listening")
-
+    speak("I    am    listening")
+    time.sleep(1) #  seconds 
+    speak_Polish("Słucham")
     # exit(0)
 
 
@@ -289,6 +314,8 @@ if __name__ == "__main__":
             if HELLO_ASSISTANT in text:
                 assist_print("I am listening")
                 speak("I am listening")
+                time.sleep(1) #  seconds 
+                speak_Polish("Słucham")
 
                 text = listen_speech() ;
                 if text is None:
