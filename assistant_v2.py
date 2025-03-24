@@ -209,13 +209,29 @@ def thread_play_radio_rmf(command, sub_commands_pids):
 def thread_stop_radio(command, sub_commands_pids):
     print("Stop Radio")
 
-    radio_pid = sub_commands_pids["play radio RMF"]
-    kill_command = "kill -9 -" + str(radio_pid)
-    command_thread = threading.Thread(target=thread_command_function, args=(command, sub_commands_pids, kill_command,"dummy")) # extra comma , must be added
-    command_thread.daemon = True  # Thread will terminate when main program exits
-    command_thread.start()
+    if "play radio RMF" in sub_commands_pids:
+        radio_pid = sub_commands_pids["play radio RMF"]
+        kill_command = "kill -9 -" + str(radio_pid)
+        command_thread = threading.Thread(target=thread_command_function, args=(command, sub_commands_pids, kill_command,"dummy")) # extra comma , must be added
+        command_thread.daemon = True  # Thread will terminate when main program exits
+        command_thread.start()
 
-    logger.debug("thread_play_radio_rmf: " + str(sub_commands_pids))
+        logger.debug("thread_stop_radio: " + str(sub_commands_pids))
+        # remove stoped command
+        del sub_commands_pids["play radio RMF"]
+
+    elif "play radio" in sub_commands_pids:
+        radio_pid = sub_commands_pids["play radio"]
+        kill_command = "kill -9 -" + str(radio_pid)
+        command_thread = threading.Thread(target=thread_command_function, args=(command, sub_commands_pids, kill_command,"dummy")) # extra comma , must be added
+        command_thread.daemon = True  # Thread will terminate when main program exits
+        command_thread.start()
+
+        logger.debug("thread_stop_radio: " + str(sub_commands_pids))
+        # remove stoped command
+        del sub_commands_pids["play radio"]
+
+
 
 def is_supported (command_text):
     if ASSISTANT_OFF  in command_text:
@@ -289,9 +305,9 @@ def thread_command_function(assistant_command, sub_commands_pids, tuple_os_comma
 if __name__ == "__main__":
     
 
-    speak("I    am    listening")
+    speak("Hello my Master")
     time.sleep(1) #  seconds 
-    speak_Polish("Słucham")
+    speak_Polish("Witaj panie")
     # exit(0)
 
 
