@@ -305,9 +305,9 @@ def thread_command_function(assistant_command, sub_commands_pids, tuple_os_comma
 if __name__ == "__main__":
     
 
-    speak("Hello my developer ")
+    speak("Hello developer")
     time.sleep(1) #  seconds 
-    speak_Polish("Witaj mój programisto")
+    speak_Polish("Witaj programisto")
     # exit(0)
 
 
@@ -330,8 +330,8 @@ if __name__ == "__main__":
             if HELLO_ASSISTANT in text:
                 assist_print("I am listening")
                 speak("I am listening")
-                time.sleep(1) #  seconds 
-                speak_Polish("Słucham")
+                # time.sleep(1) #  seconds 
+                # speak_Polish("Słucham")
 
                 text = listen_speech() ;
                 if text is None:
@@ -352,7 +352,7 @@ if __name__ == "__main__":
 
         
     speak("Good bye")
-    time.sleep(1) #  seconds 
+    # time.sleep(1) #  seconds 
     speak_Polish("Do widzenia")
     print("Bye Bye")
 
