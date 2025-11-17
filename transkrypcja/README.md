@@ -20,6 +20,7 @@ pip install -U openai-whisper
 pip install setuptools-rust
 
 # it is already added to my conda env 
+conda env list 
 conda activate python312
 ```
 
@@ -27,5 +28,5 @@ conda activate python312
 
 
 ```
-
+python transkrypcja.py 
 ```
