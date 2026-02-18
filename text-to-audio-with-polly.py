@@ -97,7 +97,10 @@ if __name__ == "__main__":
     # mp3_path = synthesize_announcement("Panie Jacku, za chwilkę ma pan spotkanie ", "Jacek", "./za-chwilke-spotkanie-Jacek.mp3", "default", "us-east-1") 
     # print(f"MP3 path: {mp3_path}")
 
-    mp3_path = synthesize_announcement("Panie Jacku, ważne zadanie do zrobienia ", "Jacek", "./wazne-zadanie-Jacek.mp3", "default", "us-east-1") 
+    # mp3_path = synthesize_announcement("Panie Jacku, ważne zadanie do zrobienia ", "Jacek", "./wazne-zadanie-Jacek.mp3", "default", "us-east-1") 
+    # print(f"MP3 path: {mp3_path}")
+
+    mp3_path = synthesize_announcement("Panie Jacku, Kończymy. Nadgodziny. ", "Jacek", "./nadgodziny-konczymy-Jacek.mp3", "default", "us-east-1") 
     print(f"MP3 path: {mp3_path}")
 
 
